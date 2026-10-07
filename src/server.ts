@@ -1,14 +1,19 @@
 import express, { Request, Response } from "express"
 import {Pool} from "pg";
+
+import dotenv from 'dotenv';
+import path from "path"
+dotenv.config({ path: path.join(process.cwd(), ".env") });
+
 const app = express();
 const port = 5000;
 
 // parser
-app.use(express.json()); //eta json data parse korar jonno
+app.use(express.json()); //eta json data parsipe korar jonno
 app.use(express.urlencoded()); // eta form data parse korar jonno
 
 // DataBase or DB 
-const pool = new Pool({connectionString:`process.env.CONNECTION_STR`});
+const pool = new Pool({connectionString:`${process.env.CONNECTION_STR}`});
 
 const initDB = async() =>{
   await pool.query(`CREATE TABLE IF NOT EXISTS users(
@@ -36,10 +41,29 @@ initDB();
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello World to next level devt.lopers!');
 });
-app.post('/', (req: Request, res: Response) => {
+
+//! users CRUD
+app.post('/users', async (req: Request, res: Response) => {
   console.log(req.body);
-  res.status(201).json({ success: true, message: "API is working"});
+  const {name, email} = req.body;
+  try{
+    const result = await pool.query(`INSERT INTO users(name, email) VALUES($1, $2) RETURNING *`, [name, email]);
+    // console.log(result.rows[0]);
+    res.status(201).json({ success: true, message: "Data inserted successfully", data: result.rows[0] });
+  }catch(err: any){
+    res.status(500).json({success:false, message: err.message})
+  }
 });
+
+app.get("/users", async (req: Request, res: Response) => {
+  try{
+    const result = await pool.query(`SELECT * FROM users`);
+    res.status(200).json({success: true, message: "Users retrieved successfully", data: result.rows})
+  }catch(err: any){
+    res.status(500).json({success:false, message: err.message, details: err})
+  }
+})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
