@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express"
+import express, { NextFunction, Request, Response } from "express"
 import {Pool} from "pg";
 
 import dotenv from 'dotenv';
@@ -38,7 +38,14 @@ const initDB = async() =>{
     )`)
 }
 initDB();
-app.get('/', (req: Request, res: Response) => {
+
+// logger middleware 
+const logger = (req: Request, res: Response, next: NextFunction)=>{
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}\n`);
+  next();
+}
+
+app.get('/', logger,(req: Request, res: Response) => {
   res.send('Hello World to next level devt.lopers!');
 });
 
@@ -129,6 +136,10 @@ app.get("/todos", async (req: Request, res: Response) => {
   }catch(err: any){
     res.status(500).json({success:false, message: err.message, details: err})
   }
+})
+
+app.use((req: Request, res: Response)=>{
+  res.status(404).json({success:false, message: "Route not found", path: req.path})
 })
 
 
